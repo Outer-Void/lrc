@@ -189,5 +189,8 @@ Use `lrc --platform-info` when reporting issues to include environment details.
 - [`examples/`](./examples) — ready-to-run schemas for diverse stacks
 
 ---
+## 📜 Licensing
 
-© 2024 LRC contributors. Licensed under the MIT License.
+LRC is dual-licensed to balance community access with a commercial adoption path. Open-source use is granted under the Apache License 2.0; see [`LICENSE-APACHE`](./LICENSE-APACHE) for the full terms.
+
+Commercial use (including embedding LRC in paid products, offering it as a managed service, or other monetized distribution) requires a separate commercial agreement described in [`LICENSE-COMMERCIAL`](./LICENSE-COMMERCIAL). To discuss commercial licensing, email **theoutervoid@outlook.com**.

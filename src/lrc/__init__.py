@@ -29,7 +29,7 @@ from __future__ import annotations
 __version__ = "1.0.0-alpha.1"
 __author__ = "Justadudeinspace"
 __email__ = "justadudeinspace@example.com"
-__license__ = "MIT"
+__license__ = "Apache-2.0"
 __copyright__ = "Copyright 2024 LRC Project"
 
 import sys

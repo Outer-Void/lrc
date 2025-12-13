@@ -6,13 +6,13 @@ readme = "README.md"
 authors = [
     { name = "Justadudeinspace", email = "justadudeinspace@example.com" }
 ]
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 requires-python = ">=3.9"
 keywords = ["scaffolding", "templates", "code-generation", "productivity"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -66,6 +66,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools]
+license-files = ["LICENSE", "LICENSE-APACHE", "LICENSE-COMMERCIAL", "NOTICE"]
 
 [tool.black]
 line-length = 88
