@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/assets/lrc-logo-green.png" alt="LRC — Local Repo Compile" width="600">
+  <img src="./docs/assets/lrc-logo-new.png" alt="LRC — Local Repo Compile" width="600">
 </p>
 
 # ⚙️ LRC — Local Repo Compiler
