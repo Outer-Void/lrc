@@ -1,85 +1,75 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "lrc"
-version = "1.0.0-alpha.1"
-description = "Local Repo Compile — build a repo from a declarative schema file"
+# The PyPI name "lrc" belongs to an unrelated project, so the distribution is outervoid-lrc. The import package
+# and the command are still `lrc`.
+name = "outervoid-lrc"
+version = "2.0.0"
+description = "LRC: deterministic repository creation, scaffolding and migration (standalone; BLUX capability adapter)"
 readme = "README.md"
-authors = [
-    { name = "Justadudeinspace", email = "justadudeinspace@example.com" }
-]
-license = { text = "MIT" }
-requires-python = ">=3.9"
-keywords = ["scaffolding", "templates", "code-generation", "productivity"]
+authors = [{ name = "Outer Void", email = "theoutervoid@outlook.com" }]
+# Licence unchanged from the existing LICENSE file; any change is an owner decision (credits UNR-008).
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+# No runtime dependencies. git is used only when a spec asks for an initial commit; DAT only for --audit.
+dependencies = []
+keywords = ["scaffolding", "templates", "repository", "migration", "reproducible"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
 ]
-
-dependencies = []
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0,<9.0",
-    "pytest-cov>=4.1.0,<5.0.0",
-    "black>=24.0.0,<25.0.0",
-    "mypy>=1.8.0,<2.0.0",
-    "flake8>=7.0.0,<8.0.0",
-    "isort>=5.13.0,<6.0.0",
-    "build>=1.0.0,<2.0.0",
-]
-
-pdf = [
-    "reportlab>=4.0.8,<5.0",
-    "Pillow>=11.3.0,<12.0",
-]
-
-perf = [
-    "orjson>=3.9.0,<4.0.0",
-    "tqdm>=4.65.0,<5.0.0",
-]
-
-all = [
-    "reportlab>=4.0.8,<5.0",
-    "Pillow>=11.3.0,<12.0",
-    "orjson>=3.9.0,<4.0.0",
-    "tqdm>=4.65.0,<5.0.0",
-    "python-dateutil>=2.8.2,<3.0.0",
-]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.10", "jsonschema>=4.20", "build>=1.2"]
 
 [project.urls]
-Homepage = "https://github.com/Justadudeinspace/lrc"
-Repository = "https://github.com/Justadudeinspace/lrc"
-Documentation = "https://github.com/Justadudeinspace/lrc#readme"
+Homepage = "https://github.com/Outer-Void/lrc"
+Repository = "https://github.com/Outer-Void/lrc"
+Changelog = "https://github.com/Outer-Void/lrc/blob/main/CHANGELOG.md"
 
 [project.scripts]
-lrc = "lrc.main:main"
-
-[build-system]
-requires = ["setuptools>=65.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+lrc = "lrc.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["lrc*"]
 
-[tool.black]
-line-length = 88
-target-version = ['py39']
-include = '\.pyi?$'
+[tool.setuptools.package-data]
+lrc = ["py.typed", "schemas/*.json", "templates/*/*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["examples"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "A", "BLE", "RUF", "SIM", "PL", "C4", "N"]
+ignore = ["PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004", "PLC0415", "S101", "S603", "S607"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "PLR", "BLE", "PLW1510", "N"]
+"src/lrc/_stdlib.py" = ["SIM905"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lrc"]
 
 [tool.mypy]
-python_version = "3.8"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
+python_version = "3.11"
+strict = true
+mypy_path = ["src"]
+packages = ["lrc"]
 
 [tool.pytest.ini_options]
-minversion = "7.0"
-addopts = "--verbose --strict-markers --strict-config"
 testpaths = ["tests"]
-pythonpath = ["src"]
+addopts = "-ra --strict-markers"
+xfail_strict = true

@@ -1,0 +1,46 @@
+{
+  "contract": "lrc.template",
+  "version": 1,
+  "id": "rust-cli",
+  "template_version": "2.0.0",
+  "summary": "Rust command-line application (Cargo, no dependencies).",
+  "aliases": [
+    "rs-cli"
+  ],
+  "variables": {
+    "PROJECT": {
+      "kind": "text",
+      "required": true
+    },
+    "SLUG": {
+      "kind": "dist-name",
+      "required": true
+    },
+    "VERSION": {
+      "kind": "version",
+      "default": "0.1.0"
+    },
+    "DESCRIPTION": {
+      "kind": "text",
+      "default": ""
+    }
+  },
+  "files": [
+    {
+      "path": "Cargo.toml",
+      "source": "Cargo.toml.tmpl"
+    },
+    {
+      "path": "src/main.rs",
+      "source": "main.rs.tmpl"
+    },
+    {
+      "path": "README.md",
+      "source": "README.md.tmpl"
+    },
+    {
+      "path": ".gitignore",
+      "source": "gitignore.tmpl"
+    }
+  ]
+}

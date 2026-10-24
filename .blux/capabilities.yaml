@@ -1,0 +1,95 @@
+# LRC capabilities for BLUX (docs/BLUX.md). Results name a DAT `handoff`; BLUX runs it as a child operation.
+# A validation verdict of "fail" is a result. LRC failing to act (including migration conflicts) is a BLUX FAILURE.
+contract: blux.capability-set
+contract_version: "1.0"
+capabilities:
+  - contract: blux.capability
+    contract_version: "1.0"
+    capability_id: repo.compile
+    version: 2.0.0
+    summary: "Compile a spec to its deterministic plan (no writes)."
+    contract_versions: ["1.0"]
+    input_schema: {"type": "object", "additionalProperties": false, "properties": {"spec_file": {"type": "string", "minLength": 1, "maxLength": 4096, "description": ".lrc schema or lrc.spec JSON file (relative to the caller's working directory)."}, "spec": {"type": "object", "description": "Inline lrc.spec v1 document."}, "templates": {"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 64}}, "variables": {"type": "object", "additionalProperties": {"type": "string", "maxLength": 4096}}, "base_dir": {"type": "string", "minLength": 1, "maxLength": 4096}, "include_content": {"type": "boolean"}}}
+    output_schema: {"type": "object", "required": ["contract", "version", "entries", "tree_digest", "plan_id", "linkage"], "properties": {"contract": {"const": "lrc.plan"}, "version": {"const": 1}, "plan_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}
+    side_effects: read
+    required_permissions: ["fs:read:spec"]
+    idempotent: true
+    timeout_ms: 120000
+    provider:
+      repository: Outer-Void/lrc
+      kind: subprocess
+      entrypoint: lrc blux-capability repo.compile
+    labels:
+      authority: deterministic
+  - contract: blux.capability
+    contract_version: "1.0"
+    capability_id: repo.validate
+    version: 2.0.0
+    summary: "Validate a spec and/or check a repository against its LRC manifest."
+    contract_versions: ["1.0"]
+    input_schema: {"type": "object", "additionalProperties": false, "properties": {"spec_file": {"type": "string", "minLength": 1, "maxLength": 4096, "description": ".lrc schema or lrc.spec JSON file (relative to the caller's working directory)."}, "spec": {"type": "object", "description": "Inline lrc.spec v1 document."}, "templates": {"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 64}}, "variables": {"type": "object", "additionalProperties": {"type": "string", "maxLength": 4096}}, "base_dir": {"type": "string", "minLength": 1, "maxLength": 4096}, "target": {"type": "string", "minLength": 1, "maxLength": 4096, "description": "Repository directory."}}}
+    output_schema: {"type": "object", "required": ["contract", "version", "verdict", "summary", "issues", "linkage"], "properties": {"contract": {"const": "lrc.validation"}, "version": {"const": 1}, "verdict": {"enum": ["pass", "fail"]}}}
+    side_effects: read
+    required_permissions: ["fs:read:spec", "fs:read:target"]
+    idempotent: true
+    timeout_ms: 300000
+    provider:
+      repository: Outer-Void/lrc
+      kind: subprocess
+      entrypoint: lrc blux-capability repo.validate
+    labels:
+      authority: deterministic
+  - contract: blux.capability
+    contract_version: "1.0"
+    capability_id: repo.create
+    version: 2.0.0
+    summary: "Create a new repository from a spec, all or nothing; optionally a reproducible initial git commit."
+    contract_versions: ["1.0"]
+    input_schema: {"type": "object", "additionalProperties": false, "required": ["target"], "properties": {"spec_file": {"type": "string", "minLength": 1, "maxLength": 4096, "description": ".lrc schema or lrc.spec JSON file (relative to the caller's working directory)."}, "spec": {"type": "object", "description": "Inline lrc.spec v1 document."}, "templates": {"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 64}}, "variables": {"type": "object", "additionalProperties": {"type": "string", "maxLength": 4096}}, "base_dir": {"type": "string", "minLength": 1, "maxLength": 4096}, "target": {"type": "string", "minLength": 1, "maxLength": 4096, "description": "Repository directory."}, "git": {"type": "boolean"}, "blux": {"type": ["boolean", "object"]}, "dry_run": {"type": "boolean"}}}
+    output_schema: {"type": "object", "required": ["contract", "version", "tool", "operation", "outcome", "target", "plan_id", "tree_digest", "summary", "changes", "handoff", "linkage"], "properties": {"contract": {"const": "lrc.result"}, "version": {"const": 1}, "outcome": {"enum": ["created", "applied", "unchanged", "planned", "blocked"]}, "plan_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "tree_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "handoff": {"type": ["object", "null"]}, "linkage": {"type": "object", "required": ["operation_id", "capability_id", "system"]}}}
+    side_effects: write
+    required_permissions: ["fs:read:spec", "fs:write:target", "proc:exec:git"]
+    idempotent: false
+    timeout_ms: 300000
+    provider:
+      repository: Outer-Void/lrc
+      kind: subprocess
+      entrypoint: lrc blux-capability repo.create
+    labels:
+      authority: deterministic
+  - contract: blux.capability
+    contract_version: "1.0"
+    capability_id: repo.scaffold
+    version: 2.0.0
+    summary: "Add a spec's files to an existing directory LRC does not manage yet (journaled, add-only unless forced)."
+    contract_versions: ["1.0"]
+    input_schema: {"type": "object", "additionalProperties": false, "required": ["target"], "properties": {"spec_file": {"type": "string", "minLength": 1, "maxLength": 4096, "description": ".lrc schema or lrc.spec JSON file (relative to the caller's working directory)."}, "spec": {"type": "object", "description": "Inline lrc.spec v1 document."}, "templates": {"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 64}}, "variables": {"type": "object", "additionalProperties": {"type": "string", "maxLength": 4096}}, "base_dir": {"type": "string", "minLength": 1, "maxLength": 4096}, "target": {"type": "string", "minLength": 1, "maxLength": 4096, "description": "Repository directory."}, "force": {"type": "boolean"}, "dry_run": {"type": "boolean"}}}
+    output_schema: {"type": "object", "required": ["contract", "version", "tool", "operation", "outcome", "target", "plan_id", "tree_digest", "summary", "changes", "handoff", "linkage"], "properties": {"contract": {"const": "lrc.result"}, "version": {"const": 1}, "outcome": {"enum": ["created", "applied", "unchanged", "planned", "blocked"]}, "plan_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "tree_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "handoff": {"type": ["object", "null"]}, "linkage": {"type": "object", "required": ["operation_id", "capability_id", "system"]}}}
+    side_effects: write
+    required_permissions: ["fs:read:spec", "fs:write:target"]
+    idempotent: false
+    timeout_ms: 300000
+    provider:
+      repository: Outer-Void/lrc
+      kind: subprocess
+      entrypoint: lrc blux-capability repo.scaffold
+    labels:
+      authority: deterministic
+  - contract: blux.capability
+    contract_version: "1.0"
+    capability_id: repo.migrate
+    version: 2.0.0
+    summary: "Move an LRC-managed repository to a new spec (journaled; can overwrite and delete when forced or pruning)."
+    contract_versions: ["1.0"]
+    input_schema: {"type": "object", "additionalProperties": false, "required": ["target"], "properties": {"spec_file": {"type": "string", "minLength": 1, "maxLength": 4096, "description": ".lrc schema or lrc.spec JSON file (relative to the caller's working directory)."}, "spec": {"type": "object", "description": "Inline lrc.spec v1 document."}, "templates": {"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 64}}, "variables": {"type": "object", "additionalProperties": {"type": "string", "maxLength": 4096}}, "base_dir": {"type": "string", "minLength": 1, "maxLength": 4096}, "target": {"type": "string", "minLength": 1, "maxLength": 4096, "description": "Repository directory."}, "force": {"type": "boolean"}, "prune": {"type": "boolean"}, "dry_run": {"type": "boolean"}}}
+    output_schema: {"type": "object", "required": ["contract", "version", "tool", "operation", "outcome", "target", "plan_id", "tree_digest", "summary", "changes", "handoff", "linkage"], "properties": {"contract": {"const": "lrc.result"}, "version": {"const": 1}, "outcome": {"enum": ["created", "applied", "unchanged", "planned", "blocked"]}, "plan_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "tree_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "handoff": {"type": ["object", "null"]}, "linkage": {"type": "object", "required": ["operation_id", "capability_id", "system"]}}}
+    side_effects: destructive
+    required_permissions: ["fs:read:spec", "fs:write:target"]
+    idempotent: false
+    timeout_ms: 300000
+    provider:
+      repository: Outer-Void/lrc
+      kind: subprocess
+      entrypoint: lrc blux-capability repo.migrate
+    labels:
+      authority: deterministic

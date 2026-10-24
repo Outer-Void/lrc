@@ -1,0 +1,47 @@
+{
+  "contract": "lrc.template",
+  "version": 1,
+  "id": "node-cli",
+  "template_version": "2.0.0",
+  "summary": "Node.js command-line application (no dependencies).",
+  "aliases": [
+    "js-cli"
+  ],
+  "variables": {
+    "PROJECT": {
+      "kind": "text",
+      "required": true
+    },
+    "SLUG": {
+      "kind": "dist-name",
+      "required": true
+    },
+    "VERSION": {
+      "kind": "version",
+      "default": "0.1.0"
+    },
+    "DESCRIPTION": {
+      "kind": "text",
+      "default": ""
+    }
+  },
+  "files": [
+    {
+      "path": "package.json",
+      "source": "package.json.tmpl"
+    },
+    {
+      "path": "bin/cli.js",
+      "source": "cli.js.tmpl",
+      "executable": true
+    },
+    {
+      "path": "README.md",
+      "source": "README.md.tmpl"
+    },
+    {
+      "path": ".gitignore",
+      "source": "gitignore.tmpl"
+    }
+  ]
+}

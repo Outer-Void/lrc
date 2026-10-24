@@ -1,0 +1,25 @@
+# Default policy for running LRC through BLUX. Reading is open to every actor; creating and scaffolding
+# repositories is for users and services; migrate (declared destructive) is for users only, by exact id.
+contract: blux.policy
+contract_version: "1.0"
+policy_id: lrc-default
+default_effect: deny
+rules:
+  - rule_id: allow-read-only
+    effect: allow
+    capabilities: ["repo.compile", "repo.validate"]
+    actor_types: [user, service, agent]
+    max_side_effects: read
+    grants: ["fs:read:spec", "fs:read:target"]
+  - rule_id: allow-create-and-scaffold
+    effect: allow
+    capabilities: ["repo.create", "repo.scaffold"]
+    actor_types: [user, service]
+    max_side_effects: write
+    grants: ["fs:read:spec", "fs:write:target", "proc:exec:git"]
+  - rule_id: allow-migrate-for-users
+    effect: allow
+    capabilities: ["repo.migrate"]
+    actor_types: [user]
+    max_side_effects: destructive
+    grants: ["fs:read:spec", "fs:write:target"]

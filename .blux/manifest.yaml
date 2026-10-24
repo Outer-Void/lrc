@@ -1,0 +1,11 @@
+contract: blux.project
+contract_version: "1.0"
+project_id: lrc
+name: LRC
+description: Deterministic repository creation, scaffolding and migration. Works standalone; BLUX is optional.
+role: standalone
+repository: Outer-Void/lrc
+capabilities: capabilities.yaml
+policy: policy.yaml
+labels:
+  owner: outer-void

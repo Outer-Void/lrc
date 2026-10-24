@@ -1,6 +1,6 @@
 # examples/schema_example.lrc
 # Project: my-awesome-project
-# Description: A template project demonstrating LRC features
+# Description: A fantastic project built with LRC
 # Version: 1.0.0
 
 # ==================== VARIABLES ====================
@@ -139,7 +139,6 @@ This project was generated using **LRC** (Local Repo Compile), a tool that creat
 MD
 
   # Include content from another file
-  @include ../partials/CHANGELOG.lrc
 
 # ==================== TESTING ====================
 /tests
@@ -222,7 +221,6 @@ SH
 /assets
   # Copy files from external locations
   # @copy <source_path> <destination_path>
-  @copy ../assets/logo.png assets/logo.png
   
   # Create asset subdirectories
   icons/

@@ -943,7 +943,6 @@ You should receive a response within 24 hours. If for some reason you do not, pl
 MD
 
   # Include enterprise changelog
-  @include ../partials/CHANGELOG.lrc
 
 # ==================== ENTERPRISE TESTING ====================
 /tests

@@ -1,0 +1,51 @@
+name: Release
+
+# One release workflow (2.0 replaced the duplicate sign-and-release.yml/.yaml pair).
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip build
+          pip install .
+          pip install --no-deps "outervoid-dat @ git+https://github.com/Outer-Void/dat.git@ba5838636d8576b555fcf854793a709210814a1a"
+      - name: Release gate (DAT; tag must match the version, tree clean, no blocking findings)
+        run: |
+          dat release . --gate --no-target-policy --fail-on medium \
+            --json release-audit.json --md release-audit.md --sarif release-audit.sarif
+      - name: Build
+        run: python -m build
+      - name: Audit the built artifacts
+        run: dat artifact dist --gate --json artifact-audit.json
+      - name: Checksums
+        run: (cd dist && sha256sum * > SHA256SUMS)
+      - name: Sign
+        if: env.GPG_PRIVATE_KEY != ''
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          for f in dist/* release-audit.* artifact-audit.json; do
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign "$f"
+          done
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+            release-audit.*
+            artifact-audit.json*

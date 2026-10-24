@@ -1,0 +1,16 @@
+"""Command-line entry point for ${PROJECT}."""
+
+from __future__ import annotations
+
+import argparse
+
+from ${PKG} import __version__
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="${SLUG}", description="${DESCRIPTION}")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument("name", nargs="?", default="world")
+    args = parser.parse_args(argv)
+    print(f"Hello, {args.name}!")
+    return 0

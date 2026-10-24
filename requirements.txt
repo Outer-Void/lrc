@@ -1,1 +1,0 @@
-# LRC runtime has no mandatory external dependencies.

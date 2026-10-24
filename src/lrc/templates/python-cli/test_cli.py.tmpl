@@ -1,0 +1,6 @@
+from ${PKG}.cli import main
+
+
+def test_greets(capsys):
+    assert main(["LRC"]) == 0
+    assert capsys.readouterr().out == "Hello, LRC!\n"

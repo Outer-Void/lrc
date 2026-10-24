@@ -1,0 +1,6 @@
+{
+  "comment": "Identifiers of the BLUX hard-gate fixture for LRC 2.0.0. They change only if the fixture spec, a template or LRC's output format changes; update them deliberately.",
+  "plan_id": "aaf3fdf25d05334096bc89417fae6e2f5c20aff2902beb6ce250d035999dd327",
+  "tree_digest": "edc21e14abee79afa7c98c4b13cd9160612183454da46b0d38be5eb42a6cbdc9",
+  "git_commit": "601be9d2f74cea504705537a791b6cb584c80819"
+}

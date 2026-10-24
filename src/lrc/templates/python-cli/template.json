@@ -1,0 +1,62 @@
+{
+  "contract": "lrc.template",
+  "version": 1,
+  "id": "python-cli",
+  "template_version": "2.0.0",
+  "summary": "Python command-line application (src layout, setuptools, pytest).",
+  "aliases": [
+    "py-cli"
+  ],
+  "variables": {
+    "PROJECT": {
+      "kind": "text",
+      "required": true
+    },
+    "SLUG": {
+      "kind": "dist-name",
+      "required": true
+    },
+    "PKG": {
+      "kind": "python-package",
+      "required": true
+    },
+    "VERSION": {
+      "kind": "version",
+      "default": "0.1.0"
+    },
+    "DESCRIPTION": {
+      "kind": "text",
+      "default": ""
+    }
+  },
+  "files": [
+    {
+      "path": "pyproject.toml",
+      "source": "pyproject.toml.tmpl"
+    },
+    {
+      "path": "README.md",
+      "source": "README.md.tmpl"
+    },
+    {
+      "path": ".gitignore",
+      "source": "gitignore.tmpl"
+    },
+    {
+      "path": "src/${PKG}/__init__.py",
+      "source": "init.py.tmpl"
+    },
+    {
+      "path": "src/${PKG}/__main__.py",
+      "source": "main.py.tmpl"
+    },
+    {
+      "path": "src/${PKG}/cli.py",
+      "source": "cli.py.tmpl"
+    },
+    {
+      "path": "tests/test_cli.py",
+      "source": "test_cli.py.tmpl"
+    }
+  ]
+}

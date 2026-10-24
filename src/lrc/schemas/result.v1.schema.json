@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:outervoid:lrc:result:v1",
+  "title": "lrc.result v1 (repo.create / scaffold / migrate, rollback)",
+  "type": "object",
+  "required": [
+    "contract",
+    "version",
+    "tool",
+    "operation",
+    "outcome",
+    "target",
+    "plan_id",
+    "tree_digest",
+    "git",
+    "transaction",
+    "summary",
+    "changes",
+    "warnings",
+    "handoff",
+    "linkage"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lrc.result"
+    },
+    "version": {
+      "const": 1
+    },
+    "tool": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "lrc"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "operation": {
+      "enum": [
+        "create",
+        "scaffold",
+        "migrate",
+        "rollback"
+      ]
+    },
+    "outcome": {
+      "enum": [
+        "created",
+        "applied",
+        "unchanged",
+        "planned",
+        "blocked",
+        "rolled_back"
+      ]
+    },
+    "target": {
+      "type": "string"
+    },
+    "plan_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tree_digest": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "git": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "commit",
+            "branch"
+          ],
+          "properties": {
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40,64}$"
+            },
+            "branch": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "transaction": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "enum": [
+              "create",
+              "update",
+              "overwrite",
+              "delete",
+              "unchanged",
+              "orphan",
+              "conflict",
+              "restore"
+            ]
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "handoff": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "tool",
+            "capability_id",
+            "input"
+          ],
+          "properties": {
+            "tool": {
+              "const": "dat"
+            },
+            "capability_id": {
+              "const": "repo.audit"
+            },
+            "input": {
+              "type": "object",
+              "required": [
+                "target"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "linkage": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  }
+}

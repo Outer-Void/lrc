@@ -22,6 +22,6 @@ README.md <<MD
 
 This project illustrates how to run the DAT audit pipeline after LRC finishes building.
 
-* Configure `~/.config/lrc/dat_integration.json`
-* Execute `lrc examples/dat_integration.lrc -o ./build/dat --audit`
+* Install DAT (`dat` on PATH)
+* Execute `lrc create examples/dat_integration.lrc -o ./build/dat --audit`
 MD

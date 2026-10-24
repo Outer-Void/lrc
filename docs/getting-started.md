@@ -1,50 +1,55 @@
-# Getting Started with LRC
+# Getting started
 
-This quick guide walks through compiling a repository from a declarative `.lrc` schema using the v1.0.0-alpha.1 toolchain.
-
-## 1. Prepare your environment
+## 1. Install
 
 ```bash
-python -m pip install --upgrade pip
-pip install -e .[dev]
+pipx install outervoid-lrc      # Python 3.11+; or from a checkout: pip install -e '.[dev]'
+lrc templates
 ```
 
-## 2. Author a schema
+## 2. Write a spec
 
-Create `quickstart.lrc`:
+`quickstart.lrc`:
 
 ```text
 # Project: Quickstart Service
 # Description: Demo API scaffold
+@template python-cli
+@git
 
-@set AUTHOR=Quick Start Team
-src/
-  __init__.py
-  main.py <<PY
-  from pathlib import Path
-
-  def main() -> None:
-      print("Hello from LRC!")
-
-  if __name__ == "__main__":
-      main()
-PY
-README.md -> # Quickstart Service
+docs/
+  NOTES.md <<MD
+  Notes for ${PROJECT}, version ${VERSION}.
+  MD
 ```
 
-## 3. Compile
+## 3. Look before writing
 
 ```bash
-lrc quickstart.lrc -o ./build/quickstart
+lrc compile quickstart.lrc
 ```
 
-Use `--dry-run` to preview actions and `--audit` to run the DAT pipeline after a successful build.
+Every file, its mode and digest, and the `plan_id`. Run it twice and the `plan_id` is the same.
 
-## 4. Explore
+## 4. Create
 
 ```bash
-tree build/quickstart
-python build/quickstart/src/main.py
+lrc create quickstart.lrc -o quickstart
+cd quickstart && PYTHONPATH=src python -m quickstart_service Ada && git log --oneline
 ```
 
-You're ready to extend the schema with directives such as `@template`, `@copy`, and `@include`.
+The repository has a reproducible first commit and `.lrc/manifest.json`. Add `--audit` to have DAT check it.
+DAT will ask for a `LICENSE`, which LRC deliberately leaves to you.
+
+## 5. Change it
+
+Edit the spec (say `# Version: 0.2.0`), then:
+
+```bash
+lrc migrate quickstart.lrc -o quickstart --dry-run
+lrc migrate quickstart.lrc -o quickstart
+lrc validate quickstart
+lrc rollback quickstart          # if you change your mind
+```
+
+Files you edited yourself are never overwritten without `--force`, and `--force` keeps a backup in the journal.

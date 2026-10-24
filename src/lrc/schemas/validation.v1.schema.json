@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:outervoid:lrc:validation:v1",
+  "title": "lrc.validation v1 (repo.validate)",
+  "type": "object",
+  "required": [
+    "contract",
+    "version",
+    "tool",
+    "target",
+    "spec",
+    "manifest",
+    "verdict",
+    "summary",
+    "issues",
+    "linkage"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lrc.validation"
+    },
+    "version": {
+      "const": 1
+    },
+    "tool": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "lrc"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "errors",
+        "warnings"
+      ]
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "linkage": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  }
+}
