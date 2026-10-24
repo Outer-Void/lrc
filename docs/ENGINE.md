@@ -49,5 +49,8 @@ and it is excluded from scans, validation and DAT (which uses `git ls-files`).
   `--no-gpg-sign`, `core.autocrlf=false`: your git configuration, hooks and signing never run;
 - the message `Initial commit` plus the LRC version and `lrc-plan-id`.
 
+`scaffold` and `migrate` ignore `@git`: an existing repository's history is never touched, and a migration
+shows up as ordinary working-tree changes for you to review and commit.
+
 The same plan therefore gives the same commit id everywhere (see `tests/fixtures/hardgate.expected.json`).
 Re-author the commit if you want it under your name: `git commit --amend --reset-author`.

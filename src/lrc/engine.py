@@ -287,8 +287,7 @@ def apply(
     todo = [c for c in changes if c["action"] in ("create", "update", "overwrite", "delete")]
     if not todo:
         return result_doc(operation, "unchanged", target, plan, changes)
-    if plan.git:
-        raise LrcError(ErrorCode.INVALID_INPUT, "git initialisation only applies to `lrc create`.")
+    # @git only shapes `create` (the initial commit). An existing repository's history is the owner's: never touched.
     txid = _transaction(target, plan, operation, todo)
     return result_doc(operation, "applied", target, plan, changes, transaction=txid)
 

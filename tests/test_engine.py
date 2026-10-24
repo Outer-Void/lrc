@@ -297,3 +297,14 @@ def test_corrupt_manifest_is_detected(tmp_path: Path) -> None:
     with pytest.raises(LrcError) as exc:
         engine.apply(plan_of(V2), repo, operation="migrate")
     assert exc.value.code is ErrorCode.MANIFEST_INVALID
+
+
+@needs_git
+def test_a_spec_with_git_can_also_migrate(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    engine.create(plan_of(V1 + "@git\n"), repo)
+    head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout
+    doc = engine.apply(plan_of(V2 + "@git\n"), repo, operation="migrate")
+    assert doc["outcome"] == "applied" and doc["git"] is None
+    after = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout
+    assert after == head  # history untouched; the migration shows up as working-tree changes
