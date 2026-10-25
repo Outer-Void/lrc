@@ -80,7 +80,14 @@ pip install -e '.[dev]'
 make ci        # ruff, mypy --strict, pytest, clean-venv wheel check, examples
 ```
 
-## Licence
+## License
 
-MIT, see [LICENSE](LICENSE). Templates never add a licence to the repositories they generate: choosing one
-is the owner's decision (DAT reports its absence).
+**Outer-Void Proprietary License** (proprietary). Copyright (c) 2026 Outer-Void / Justadudeinspace (JADIS). All rights reserved. See [LICENSE](LICENSE).
+
+Copies and releases obtained before 2026-10-25 remain available under the MIT License they were
+published with; every change and release from that date on is proprietary.
+
+Templates never add a licence to the repositories they generate: choosing one is the owner's decision
+(DAT reports its absence).
+
+Contact: outervoid.blux@gmail.com (main) · theoutervoid@outlook.com (fallback)

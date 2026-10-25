@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **License.** The Outer-Void Proprietary License applies from 2026-10-25
+  (Copyright (c) 2026 Outer-Void / Justadudeinspace (JADIS); contact outervoid.blux@gmail.com, fallback
+  theoutervoid@outlook.com). Package metadata declares the matching `LicenseRef`. Copies and releases
+  obtained before that date keep the MIT License.
+
 ## 2.0.0
 
 A rebuild. See [docs/AUDIT-1.0.md](docs/AUDIT-1.0.md) for every defect fixed and [docs/USAGE.md](docs/USAGE.md)

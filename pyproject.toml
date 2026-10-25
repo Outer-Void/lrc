@@ -11,7 +11,7 @@ description = "LRC: deterministic repository creation, scaffolding and migration
 readme = "README.md"
 authors = [{ name = "Outer Void", email = "theoutervoid@outlook.com" }]
 # Licence unchanged from the existing LICENSE file; any change is an owner decision (credits UNR-008).
-license = "MIT"
+license = "LicenseRef-OuterVoid-Proprietary"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 # No runtime dependencies. git is used only when a spec asks for an initial commit; DAT only for --audit.
