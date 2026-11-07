@@ -12,7 +12,18 @@ from lrc import __version__, api, blux_adapter, engine, handoff, templates
 from lrc.errors import EXIT_CHECK_FAILED, EXIT_FAILURE, EXIT_OK, EXIT_USAGE, ErrorCode, LrcError
 from lrc.tree import read_manifest
 
-COMMANDS = ("create", "scaffold", "compile", "plan", "migrate", "rollback", "validate", "templates", "version")
+COMMANDS = (
+    "create",
+    "scaffold",
+    "compile",
+    "plan",
+    "migrate",
+    "rollback",
+    "recover",
+    "validate",
+    "templates",
+    "version",
+)
 HIDDEN = ("blux-capability",)
 
 
@@ -86,6 +97,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--tx", metavar="ID", help="transaction id (default: the last committed one)")
     _out(p)
 
+    p = sub.add_parser("recover", help="restore a repository after an interrupted scaffold/migrate")
+    p.add_argument("target", type=Path)
+    _out(p)
+
     p = sub.add_parser("templates", help="list built-in templates")
     _out(p)
     sub.add_parser("version", help="print the version")
@@ -129,7 +144,10 @@ def _print_result(doc: dict[str, Any]) -> None:
         "planned": "Plan for",
         "blocked": "Blocked:",
         "rolled_back": "Rolled back",
+        "recovered": "Recovered",
     }[doc["outcome"]]
+    if doc["operation"] == "recover" and doc["outcome"] == "unchanged":
+        head = "Nothing to recover:"
     print(f"{head} {doc['target']} ({doc['operation']}: {counts})")
     if doc["outcome"] in ("planned", "blocked"):
         for c in doc["changes"]:
@@ -243,6 +261,12 @@ def _rollback(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _recover(args: argparse.Namespace) -> int:
+    doc = engine.recover(args.target)
+    _emit(doc, args.json)
+    return EXIT_OK
+
+
 def _templates(args: argparse.Namespace) -> int:
     docs = [t.describe() for t in templates.catalog()]
     if args.json:
@@ -326,6 +350,7 @@ def main(argv: list[str] | None = None) -> int:
             "plan": _compile,
             "validate": _validate,
             "rollback": _rollback,
+            "recover": _recover,
             "templates": _templates,
         }[args.command]
         return handler(args)

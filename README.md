@@ -10,7 +10,8 @@ gives the same bytes, the same `plan_id` and (with `@git`) the same initial comm
 - **Plan first.** Every operation compiles to a sorted plan you can inspect (`lrc compile`, `--dry-run`).
 - **All or nothing.** `create` builds in a private staging directory, verifies it against the plan, then renames
   it into place. `scaffold` and `migrate` are journaled transactions with automatic rollback, and `lrc rollback`
-  undoes the last one later.
+  undoes the last one later. If one is killed part-way, LRC refuses further changes until `lrc recover`
+  restores the state from before it.
 - **Collision-proof names.** Case/Unicode collisions, file/directory conflicts, module shadowing (`x.py` beside
   `x/__init__.py`), Windows-reserved names, traversal and escaping symlinks are rejected before anything is
   written. Generated Python packages cannot shadow the standard library.
@@ -49,6 +50,7 @@ lrc validate hello-tool               # PASS, or the files that drifted
 lrc create hello.lrc -o h2 --audit    # also hand the new repository to DAT
 lrc migrate hello-v2.lrc -o hello-tool --dry-run
 lrc rollback hello-tool               # undo the last scaffold/migrate
+lrc recover hello-tool                # after a scaffold/migrate was killed part-way
 lrc templates                         # python-cli, node-cli, rust-cli
 ```
 

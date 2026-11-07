@@ -11,7 +11,9 @@
 | `TARGET_EXISTS` | `create` only makes new repositories; use `scaffold` (unmanaged) or `migrate` (managed) |
 | `MIGRATION_CONFLICT` (exit 1) | files you changed since LRC wrote them; inspect with `--dry-run`, then edit or `--force` |
 | `ROLLBACK_CONFLICT` | files changed after the transaction; restore them or roll back by hand from `.lrc/journal/ID/blobs/` |
-| exit 4 `ROLLBACK_FAILED` | the journal in `.lrc/journal/ID/` has every before-state and backup; restore from it |
+| exit 4 `ROLLBACK_FAILED` | run `lrc recover DIR` once the cause is fixed; the journal in `.lrc/journal/ID/` has every before-state and backup |
+| `INTERRUPTED_TRANSACTION` | an earlier scaffold/migrate was killed part-way; `lrc recover DIR` restores the state from before it |
+| `TARGET_LOCKED` | another LRC process is changing the repository; wait for it and run the command again |
 | `MANIFEST_INVALID` | `.lrc/manifest.json` was edited; restore it from git |
 | `GIT_UNAVAILABLE` / `DAT_UNAVAILABLE` | install git / DAT, or drop `@git` / `--audit` |
 | `Heredoc … is never closed` | the end marker must be alone on its line (surrounding spaces are fine) |

@@ -10,12 +10,15 @@ migrate   moves an LRC-managed repository to a new plan. Files LRC wrote and nob
 
 scaffold and migrate are transactions: a write-ahead journal with backups of every file they replace or
 delete is written to .lrc/journal/ before the first change. Any failure rolls back automatically, and
-`lrc rollback` undoes the last committed transaction later.
+`lrc rollback` undoes the last committed transaction later. A process killed mid-way leaves its journal
+`pending`: every later scaffold, migrate or rollback is refused until `lrc recover` restores the state from
+before it. Transactions hold an advisory lock (.lrc/journal/.lock) so two LRC processes never interleave.
 """
 
 from __future__ import annotations
 
 import contextlib
+import errno
 import os
 import shutil
 import stat
@@ -38,9 +41,16 @@ from lrc.model import (
 from lrc.planner import Plan
 from lrc.tree import manifest_states, read_manifest, scan, state_at
 
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Windows: no advisory lock
+    fcntl = None  # type: ignore[assignment]
+
 O_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 O_BINARY = getattr(os, "O_BINARY", 0)
 STAGE_PREFIX = ".lrc-stage-"
+TMP_PREFIX = ".lrc-tmp-"
+INTERRUPTED = ("pending", "rollback_failed")  # journal states that leave the target part-way
 
 
 # ----------------------------------------------------------------------------------------------- results
@@ -59,7 +69,7 @@ def result_doc(
     summary: dict[str, int] = {}
     for c in changes:
         summary[c["action"]] = summary.get(c["action"], 0) + 1
-    exists = outcome in ("created", "applied", "unchanged", "rolled_back")
+    exists = outcome in ("created", "applied", "unchanged", "rolled_back", "recovered")
     return {
         "contract": "lrc.result",
         "version": 1,
@@ -99,7 +109,7 @@ def _write_new(path: Path, entry: Entry) -> None:
 
 def _replace(path: Path, entry: Entry) -> None:
     """Atomically put ENTRY (file or symlink) at PATH, replacing whatever file or symlink is there."""
-    tmp = Path(tempfile.mkdtemp(prefix=".lrc-tmp-", dir=path.parent))
+    tmp = Path(tempfile.mkdtemp(prefix=TMP_PREFIX, dir=path.parent))
     try:
         staged = tmp / "x"
         _write_new(staged, entry)
@@ -271,6 +281,7 @@ def apply(
             f"{target} has no {MANIFEST_PATH}; use `lrc scaffold` to bring it under LRC first.",
             details={"target": str(target)},
         )
+    _require_no_interrupted(target)
     old = manifest_states(manifest) if manifest is not None else None
     changes = _classify(plan, target, old, force=force, prune=prune)
     conflicts = [c for c in changes if c["action"] == "conflict"]
@@ -288,7 +299,16 @@ def apply(
     if not todo:
         return result_doc(operation, "unchanged", target, plan, changes)
     # @git only shapes `create` (the initial commit). An existing repository's history is the owner's: never touched.
-    txid = _transaction(target, plan, operation, todo)
+    with _locked(target):
+        _require_no_interrupted(target)
+        moved = [c["path"] for c in todo if c["path"] != LRC_DIR and state_at(target, c["path"]) != c["before"]]
+        if moved:  # another process changed the target after it was planned
+            raise LrcError(
+                ErrorCode.MIGRATION_CONFLICT,
+                f"{len(moved)} path(s) changed while LRC was planning; nothing was changed. Run it again.",
+                details={"conflicts": [{"path": p, "reason": "changed while planning"} for p in moved[:50]]},
+            )
+        txid = _transaction(target, plan, operation, todo)
     return result_doc(operation, "applied", target, plan, changes, transaction=txid)
 
 
@@ -308,6 +328,61 @@ def _journal_root(target: Path) -> Path:
     if not ignore.exists():
         ignore.write_text("# LRC transaction journal: local undo data, never committed.\n*\n", encoding="utf-8")
     return root
+
+
+@contextlib.contextmanager
+def _locked(target: Path) -> Any:
+    """Hold .lrc/journal/.lock (advisory, non-blocking) for a transaction, rollback or recovery."""
+    root = _journal_root(target)
+    fd = os.open(root / ".lock", os.O_RDWR | os.O_CREAT | O_NOFOLLOW, 0o644)
+    try:
+        if fcntl is not None:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as exc:
+                if exc.errno in (errno.EAGAIN, errno.EACCES, errno.EWOULDBLOCK):
+                    raise LrcError(
+                        ErrorCode.TARGET_LOCKED,
+                        f"Another LRC process is changing {target}; nothing was changed.",
+                        details={"target": str(target)},
+                    ) from None
+                raise
+        yield
+    finally:
+        os.close(fd)
+
+
+def _interrupted(target: Path) -> list[dict[str, Any]]:
+    return [d for d in journals(target) if d.get("status") in INTERRUPTED]
+
+
+def _require_no_interrupted(target: Path) -> None:
+    left = _interrupted(target)
+    if left:
+        txids = [d["transaction"] for d in left]
+        raise LrcError(
+            ErrorCode.INTERRUPTED_TRANSACTION,
+            f"Transaction {txids[-1]} on {target} did not finish ({left[-1]['status']}), so the repository may be "
+            f"part-way between two plans. Run `lrc recover {target}` first; nothing was changed.",
+            details={"transactions": txids},
+        )
+
+
+def _fsync_dir(path: Path) -> None:
+    with contextlib.suppress(OSError):
+        fd = os.open(path, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+
+def _write_durable(path: Path, data: bytes) -> None:
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | O_NOFOLLOW | O_BINARY, 0o644)
+    with os.fdopen(fd, "wb") as fh:
+        fh.write(data)
+        fh.flush()
+        os.fsync(fh.fileno())
 
 
 def _save_json(path: Path, doc: dict[str, Any]) -> None:
@@ -339,7 +414,7 @@ def _transaction(target: Path, plan: Plan, operation: str, todo: list[dict[str, 
                 )
             blob = blobs / digest
             if not blob.exists():
-                blob.write_bytes(data)
+                _write_durable(blob, data)  # on disk before the journal that names it
         records.append({"path": c["path"], "action": c["action"], "before": before, "after": c["after"]})
     doc = {
         "contract": "lrc.journal",
@@ -351,7 +426,9 @@ def _transaction(target: Path, plan: Plan, operation: str, todo: list[dict[str, 
         "status": "pending",
         "changes": records,
     }
+    _fsync_dir(blobs)
     _save_json(txdir / "journal.json", doc)
+    _fsync_dir(txdir)
 
     try:
         _forward(target, plan, records)
@@ -482,6 +559,13 @@ def journals(target: Path) -> list[dict[str, Any]]:
 
 def rollback(target: Path, transaction: str | None = None) -> dict[str, Any]:
     target = _target_dir(target)
+    _require_no_interrupted(target)
+    with _locked(target):
+        return _rollback_locked(target, transaction)
+
+
+def _rollback_locked(target: Path, transaction: str | None) -> dict[str, Any]:
+    _require_no_interrupted(target)
     docs = journals(target)
     if transaction is None:
         committed = [d for d in docs if d["status"] == "committed"]
@@ -515,3 +599,58 @@ def rollback(target: Path, transaction: str | None = None) -> dict[str, Any]:
     out = result_doc("rollback", "rolled_back", target, None, restored, transaction=doc["transaction"])
     out["handoff"] = None
     return out
+
+
+def _nothing_to_recover(target: Path) -> dict[str, Any]:
+    out = result_doc("recover", "unchanged", target, None, [])
+    out["handoff"] = None
+    return out
+
+
+def recover(target: Path) -> dict[str, Any]:
+    """Finish an interrupted scaffold or migrate by restoring the state from before it.
+
+    Every path the journal names must still be in its before- or after-state (the state a killed process can
+    leave, since each file is replaced atomically). A path in any other state was changed after the
+    interruption: that is a ROLLBACK_CONFLICT and nothing is touched, and the backups stay in the journal.
+    """
+    target = _target_dir(target)
+    if not (target / JOURNAL_DIR).is_dir():  # never managed by LRC: nothing to recover, and nothing is created
+        return _nothing_to_recover(target)
+    with _locked(target):
+        left = _interrupted(target)
+        if not left:
+            return _nothing_to_recover(target)
+        doc = left[-1]  # transactions are sequential, so at most one can be left part-way
+        txdir = target / JOURNAL_DIR / doc["transaction"]
+        changes = doc["changes"]
+        moved = [
+            r["path"]
+            for r in changes
+            if r["path"] != LRC_DIR and state_at(target, r["path"]) not in (r["before"], r["after"])
+        ]
+        if moved:
+            raise LrcError(
+                ErrorCode.ROLLBACK_CONFLICT,
+                f"{len(moved)} path(s) changed after transaction {doc['transaction']} was interrupted; nothing was "
+                f"restored. Resolve them by hand (the backups are in {txdir}).",
+                details={"conflicts": [{"path": p, "reason": "changed after the interruption"} for p in moved[:50]]},
+            )
+        try:
+            restored = _restore(target, txdir, changes, check=False)
+        except OSError as exc:
+            raise LrcError(
+                ErrorCode.ROLLBACK_FAILED,
+                f"Recovering {doc['transaction']} failed part-way: {exc.strerror}. Backups are in {txdir}.",
+                details={"transaction": doc["transaction"]},
+            ) from None
+        for parent in {(target / r["path"]).parent for r in changes}:
+            with contextlib.suppress(OSError):
+                for leftover in parent.iterdir():  # temporary files of the replace that was cut short
+                    if leftover.name.startswith(TMP_PREFIX) and leftover.is_dir() and not leftover.is_symlink():
+                        shutil.rmtree(leftover, ignore_errors=True)
+        doc["status"] = "recovered"
+        _save_json(txdir / "journal.json", doc)
+        out = result_doc("recover", "recovered", target, None, restored, transaction=doc["transaction"])
+        out["handoff"] = None
+        return out

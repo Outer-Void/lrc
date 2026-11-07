@@ -32,6 +32,16 @@ Any exception rolls back automatically: each path that no longer has its before-
 journal, and the journal is marked `rolled_back` (exit 3). If the rollback itself fails the journal is marked
 `rollback_failed` and LRC exits 4. Success marks it `committed`.
 
+A process killed part-way leaves the journal `pending`. LRC then refuses every `scaffold`, `migrate` and
+`rollback` on that repository (`INTERRUPTED_TRANSACTION`) until `lrc recover` puts each journaled path back in
+its before-state (each path is either before or after, since every file is replaced atomically; a path in any
+other state was changed since, and recovery refuses to touch anything). A `rollback_failed` journal is
+recovered the same way. Backups are fsynced before the journal that names them, and the journal before the
+first change.
+
+Transactions, rollbacks and recoveries hold an advisory lock, `.lrc/journal/.lock` (`TARGET_LOCKED` if another
+LRC process has it; not on Windows), and re-check under it that nothing changed since the plan was made.
+
 `lrc rollback` undoes the last committed transaction. It first checks every affected path is still in its
 after-state; anything you changed since is a `ROLLBACK_CONFLICT` and nothing is touched. Transactions are undone
 newest first.

@@ -61,6 +61,20 @@ Undoes the last committed `scaffold`/`migrate` transaction (or `ID`), restoring 
 journal. Refuses (exit 1) if any affected file changed after the transaction, and refuses to skip over a later
 committed transaction.
 
+## recover
+
+```bash
+lrc recover DIR
+```
+
+Finishes a `scaffold`/`migrate` that was killed part-way (its journal is still `pending`) or whose automatic
+rollback failed (`rollback_failed`): every path it touched goes back to its state from before the transaction,
+temporary files are removed, and the journal is marked `recovered`. Until then every `scaffold`, `migrate` and
+`rollback` on `DIR` is refused with `INTERRUPTED_TRANSACTION` (exit 3), so nothing runs over a half-applied
+tree. Refuses (exit 1, `ROLLBACK_CONFLICT`) if a path was changed after the interruption; the backups stay in
+`.lrc/journal/ID/`. Prints "Nothing to recover" (exit 0) otherwise, and creates nothing in a directory LRC has
+never managed.
+
 ## compile (plan)
 
 ```bash
@@ -98,7 +112,7 @@ and undoable. `--bootstrap` and `--platform-info` were removed and exit 2 with a
 | 0 | done (or nothing to do) |
 | 1 | a check said no: validation failed, migration/rollback conflicts, or the DAT gate failed. Nothing was changed by LRC |
 | 2 | bad command line |
-| 3 | LRC could not do it (bad spec, target exists, I/O error, git or DAT unavailable). Partial changes were rolled back |
+| 3 | LRC could not do it (bad spec, target exists, I/O error, git or DAT unavailable, an interrupted transaction needs `lrc recover`, another LRC process holds the target). Partial changes were rolled back |
 | 4 | the operation failed and so did its rollback: inspect the target and `.lrc/journal/` |
 
 With `--json`, failures print `{"error": {"code", "message", "details"}}` on stdout. Codes are listed in

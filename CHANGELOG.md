@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Interrupted transactions (OV-51).** A `scaffold` or `migrate` killed part-way left the repository between
+  two plans with no way back: `lrc rollback` found nothing to undo and later commands ran over the half-applied
+  tree. New `lrc recover DIR` restores the state from before it (also after `ROLLBACK_FAILED`); until then
+  `scaffold`, `migrate` and `rollback` refuse with `INTERRUPTED_TRANSACTION` (exit 3). Journal backups are
+  fsynced before the journal. An advisory lock (`TARGET_LOCKED`) stops two LRC processes changing one
+  repository at once. Tests: `tests/test_interrupted.py`.
+
 - **License.** The Outer-Void Proprietary License applies from 2026-10-25
   (Copyright (c) 2026 Outer-Void / Justadudeinspace (JADIS); contact outervoid.blux@gmail.com, fallback
   theoutervoid@outlook.com). Package metadata declares the matching `LicenseRef`. Copies and releases
