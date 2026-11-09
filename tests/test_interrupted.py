@@ -153,3 +153,44 @@ def test_recover_on_a_directory_lrc_never_managed_changes_nothing(tmp_path: Path
     (tmp_path / "plain" / "a.txt").write_text("a\n")
     assert engine.recover(tmp_path / "plain")["outcome"] == "unchanged"
     assert sorted(p.name for p in (tmp_path / "plain").iterdir()) == ["a.txt"]
+
+
+def test_ov62_stale_stage_directories_are_reported_never_deleted(tmp_path: Path) -> None:
+    """OV-62 (F103, owner decision): a create killed while staging leaves `.lrc-stage-*` beside the target. A later
+    create and `lrc recover` now name it with the command to remove it; nothing deletes it on its own."""
+    stale = tmp_path / ".lrc-stage-abc123"
+    (stale / "notes").mkdir(parents=True)
+    (stale / "notes" / "todo.txt").write_text("half")
+    doc = engine.create(plan_of(V1), tmp_path / "demo")
+    assert doc["outcome"] == "created"
+    warned = [w for w in doc["warnings"] if w["code"] == "STALE_STAGE_DIRECTORY"]
+    assert [w["path"] for w in warned] == [str(stale)] and "rm -r" in warned[0]["message"]
+    assert (stale / "notes" / "todo.txt").read_text() == "half"  # reported, not removed
+    rec = engine.recover(tmp_path / "demo")
+    assert [w["path"] for w in rec["warnings"] if w["code"] == "STALE_STAGE_DIRECTORY"] == [str(stale)]
+    assert stale.is_dir()
+
+
+def test_ov62_a_full_disk_during_scaffold_is_an_io_error_document(tmp_path: Path) -> None:
+    """OV-62 drill: under a file-size limit `lrc scaffold --json` died with an OSError traceback and no document
+    (on ea82afc). It is now IO_ERROR, nothing in the target changed, and the next scaffold succeeds."""
+    import json
+    import resource
+    import signal
+
+    spec = tmp_path / "spec.lrc"
+    spec.write_text(V1.replace("-> one", "-> " + "x" * 600, 1))
+    target = tmp_path / "t"
+    target.mkdir()
+
+    def pre() -> None:
+        signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
+        resource.setrlimit(resource.RLIMIT_FSIZE, (200, 200))
+
+    argv = [sys.executable, "-m", "lrc", "scaffold", str(spec), "--out", str(target), "--json"]
+    proc = subprocess.run(argv, capture_output=True, text=True, preexec_fn=pre, check=False)
+    doc = json.loads(proc.stdout or proc.stderr)
+    assert proc.returncode != 0 and doc["error"]["code"] == "IO_ERROR", proc.stderr[-300:]
+    assert [p.name for p in target.iterdir() if p.name != ".lrc"] == []
+    assert subprocess.run(argv, capture_output=True, check=False).returncode == 0
+    assert (target / "notes" / "todo.txt").is_file()

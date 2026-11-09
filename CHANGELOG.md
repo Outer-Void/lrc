@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Stale staging directories are reported (OV-62, F103, owner decision).** A `create` killed while staging
+  leaves `.lrc-stage-*` beside the target. `lrc create` and `lrc recover` now list each one as a
+  `STALE_STAGE_DIRECTORY` warning with the command to remove it; LRC never deletes one itself, since it cannot
+  prove that no create is still using it.
+- **A full disk is an `IO_ERROR` document (OV-62).** `scaffold`, `migrate` and the other commands let an
+  `OSError` (for example a file-size limit) escape as a traceback, so `--json` callers got no document. It is
+  now `IO_ERROR` with `details.errno`; the target is unchanged, as before.
 - **Interrupted transactions (OV-51).** A `scaffold` or `migrate` killed part-way left the repository between
   two plans with no way back: `lrc rollback` found nothing to undo and later commands ran over the half-applied
   tree. New `lrc recover DIR` restores the state from before it (also after `ROLLBACK_FAILED`); until then

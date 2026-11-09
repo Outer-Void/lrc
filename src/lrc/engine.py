@@ -180,13 +180,38 @@ def create(plan: Plan, target: Path, *, dry_run: bool = False) -> dict[str, Any]
         if isinstance(exc, OSError):
             raise _io(exc, f"Creating {target} failed; nothing was left behind") from None
         raise
-    return result_doc("create", "created", target, plan, changes, git=git)
+    out = result_doc("create", "created", target, plan, changes, git=git)
+    out["warnings"] = [*out["warnings"], *_stale_stages(target.parent)]
+    return out
 
 
 def _diff(actual: dict[str, Any], plan: Plan) -> list[str]:
     wanted = plan.states()
     paths = sorted(set(actual) | set(wanted), key=path_key)
     return [p for p in paths if actual.get(p) != wanted.get(p)][:50]
+
+
+def _stale_stages(parent: Path) -> list[dict[str, Any]]:
+    """OV-62 (F103, owner decision 2026-11-09): staging directories an interrupted `create` left beside the target.
+
+    They are reported, never deleted: LRC cannot prove that one is not in use by a create still running."""
+    try:
+        names = sorted(
+            e.name for e in parent.iterdir() if e.name.startswith(STAGE_PREFIX) and e.is_dir() and not e.is_symlink()
+        )
+    except OSError:
+        return []
+    return [
+        {
+            "code": "STALE_STAGE_DIRECTORY",
+            "severity": "warning",
+            "message": f"{name} was left by an interrupted lrc create (or belongs to one still running). Once no "
+            f"create is running here, remove it: rm -r {parent / name}",
+            "path": str(parent / name),
+            "origin": "lrc",
+        }
+        for name in names
+    ]
 
 
 def _cleanup(stage: Path | None, created_parents: list[Path], stage_parent: Path) -> None:
@@ -608,6 +633,12 @@ def _nothing_to_recover(target: Path) -> dict[str, Any]:
 
 
 def recover(target: Path) -> dict[str, Any]:
+    out = _recover(target)
+    out["warnings"] = [*out.get("warnings", []), *_stale_stages(Path(out["target"]).parent)]
+    return out
+
+
+def _recover(target: Path) -> dict[str, Any]:
     """Finish an interrupted scaffold or migrate by restoring the state from before it.
 
     Every path the journal names must still be in its before- or after-state (the state a killed process can

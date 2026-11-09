@@ -357,6 +357,17 @@ def main(argv: list[str] | None = None) -> int:
     except LrcError as exc:
         _print_error(exc, as_json)
         return exc.exit_code
+    except OSError as exc:
+        # OV-62: a full disk or a size limit outside the paths that already map it (create) escaped as a
+        # traceback, so `--json` callers got no document. The target is unchanged at that point: the journal is
+        # written before any file is replaced, and `lrc recover` handles an interruption after that.
+        err = LrcError(
+            ErrorCode.IO_ERROR,
+            f"{args.command} failed: {exc.strerror or type(exc).__name__}.",
+            details={"errno": exc.errno},
+        )
+        _print_error(err, as_json)
+        return err.exit_code
     except KeyboardInterrupt:
         print("lrc: interrupted", file=sys.stderr)
         return EXIT_FAILURE
